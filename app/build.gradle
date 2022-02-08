@@ -61,4 +61,16 @@ dependencies {
 
     implementation "androidx.navigation:navigation-compose:2.5.0-alpha01"
     implementation "com.google.accompanist:accompanist-systemuicontroller:0.24.1-alpha"
+
+    // RETROFIT - İnternetten veri çekmeyi ve yayınlamaya yarayan kütüphaneler
+    implementation "com.squareup.retrofit2:retrofit:2.9.0"
+    implementation "com.squareup.retrofit2:converter-gson:2.9.0"
+    implementation "com.squareup.retrofit2:adapter-rxjava2:2.3.0"
+
+    // RXJAVA - Retrofit için ek/yardımcı kütüphaneler
+    implementation "io.reactivex.rxjava2:rxjava:2.2.8"
+    implementation "io.reactivex.rxjava2:rxandroid:2.1.1"
+
+    // GLIDE - Görsellerde kullanılacak olan kütüphane
+    implementation "com.github.bumptech.glide:glide:4.12.0"
 }
