@@ -3,9 +3,7 @@ package com.yusuftalhaklc.weatherapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,8 +22,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.yusuftalhaklc.weatherapp.ui.theme.WeatherAppTheme
+import com.yusuftalhaklc.weatherapp.viewmodel.MainViewModel
+
 
 class MainActivity : ComponentActivity() {
+    var viewModel = MainViewModel()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 @Composable
 fun NavPage(){
     val navController = rememberNavController()
@@ -51,6 +53,19 @@ fun NavPage(){
         composable(route = "sevendays") {
             NextSevenDays()
         }
+    }
+}
+
+@Composable
+fun MainPage(navController: NavController){
+    ChangeNavigationBarColor(R.color.white)
+    Column(modifier = Modifier
+        .padding(10.dp)
+        .verticalScroll(rememberScrollState())) {
+        TopInfoRow()
+        CurrentInfo()
+        BottomInfoRow(navController)
+        HourlyWeatherInfoRow()
     }
 }
 
@@ -158,7 +173,7 @@ fun CurrentInfo(){
 }
 
 @Composable
-fun InfoRow(){
+fun TopInfoRow(){
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
@@ -179,7 +194,7 @@ fun InfoRow(){
 }
 
 @Composable
-fun SevenDayInfoRow(navController: NavController){
+fun BottomInfoRow(navController: NavController){
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(15.dp),
@@ -198,17 +213,6 @@ fun SevenDayInfoRow(navController: NavController){
                     .padding(top = 4.dp) ,
                 contentDescription = "Next 7 Days")
         }
-    }
-}
-
-@Composable
-fun MainPage(navController: NavController){
-    ChangeNavigationBarColor(R.color.white)
-    Column(modifier = Modifier.padding(10.dp)) {
-        InfoRow()
-        CurrentInfo()
-        SevenDayInfoRow(navController)
-        SevenDayRow()
     }
 }
 
@@ -245,23 +249,24 @@ fun CurrentWeatherDetailBox(pic:Int,title:String,content:String){
 }
 
 @Composable
-fun SevenDayRow(){
+fun HourlyWeatherInfoRow(){
     LazyRow(
         content = {
             item{
-                SevenDayCard(12,"Now",R.color.white,R.color.white,R.color.Blue)
-                SevenDayCard(14,"22°")
-                SevenDayCard(16,"26°")
-                SevenDayCard(18,"25°")
-                SevenDayCard(20,"31°")
-                SevenDayCard(22,"27°")
+                HourlyWeatherCard(12,"Now",R.color.white,R.color.white,R.color.Blue)
+                HourlyWeatherCard(14,"22°")
+                HourlyWeatherCard(16,"26°")
+                HourlyWeatherCard(18,"25°")
+                HourlyWeatherCard(20,"31°")
+                HourlyWeatherCard(24,"27°")
+
             }
         }
     )
 }
 
 @Composable
-fun SevenDayCard(
+fun HourlyWeatherCard(
     time:Int,
     temp:String,
     timeColor:Int = R.color.gray,
