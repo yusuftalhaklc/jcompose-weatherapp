@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.yusuftalhaklc.weatherapp.Model.Weather
 import com.yusuftalhaklc.weatherapp.service.WeatherAPI
 import kotlinx.coroutines.launch
-
+/*
 class MainViewModel : ViewModel() {
     var weatherListResponse:List<Weather> by mutableStateOf(listOf())
     var errorMessage: String by mutableStateOf("")
@@ -24,4 +24,4 @@ class MainViewModel : ViewModel() {
             }
         }
     }
-}
+}*/

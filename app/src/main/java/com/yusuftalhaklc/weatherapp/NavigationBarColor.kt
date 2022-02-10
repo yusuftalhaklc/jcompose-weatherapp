@@ -9,9 +9,9 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 @Composable
 fun ChangeNavigationBarColor(BarColor:Int){
     val systemUiController = rememberSystemUiController()
-    var barColor : Color = colorResource(id = BarColor)
+    val barColor : Color = colorResource(id = BarColor)
     SideEffect {
-        systemUiController.setNavigationBarColor(
+        systemUiController.setStatusBarColor(
             color = barColor
         )
     }
