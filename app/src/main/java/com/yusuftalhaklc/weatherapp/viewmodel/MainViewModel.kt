@@ -1,27 +1,24 @@
 package com.yusuftalhaklc.weatherapp.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.util.Log
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.yusuftalhaklc.weatherapp.Model.Weather
-import com.yusuftalhaklc.weatherapp.service.WeatherAPI
-import kotlinx.coroutines.launch
-/*
-class MainViewModel : ViewModel() {
-    var weatherListResponse:List<Weather> by mutableStateOf(listOf())
-    var errorMessage: String by mutableStateOf("")
-    fun getWeather() {
-        viewModelScope.launch {
-            val apiService = WeatherAPI.getInstance()
-            try {
-                val weatherList = apiService.getWeather()
-                weatherListResponse = weatherList
-            }
-            catch (e: Exception) {
-                errorMessage = e.message.toString()
-            }
+import com.yusuftalhaklc.weatherapp.repository.WeatherRepository
+
+
+class MainViewModel:ViewModel() {
+
+   /* val wrepo = WeatherRepository()
+
+    fun getCityName():String{
+        var name : MutableLiveData<String> =  MutableLiveData()
+        wrepo.weatherLiveData.observeForever {
+            Log.e("VIEWMODEL", "${it.location.name}")
+             name.value = it.location.name
         }
+        Log.e("VIEWMODEL 22", "${name.value.toString()}")
+        return name.value.toString()
     }
-}*/
+*/
+
+}

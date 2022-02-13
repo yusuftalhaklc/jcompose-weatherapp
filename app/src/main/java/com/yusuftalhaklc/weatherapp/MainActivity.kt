@@ -1,61 +1,83 @@
 package com.yusuftalhaklc.weatherapp
 
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
+
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester.Companion.createRefs
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
+import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.skydoves.landscapist.glide.GlideImage
+import com.yusuftalhaklc.weatherapp.Model.Hour
 import com.yusuftalhaklc.weatherapp.data.AppPref
-import com.yusuftalhaklc.weatherapp.service.WeatherAPI
+import com.yusuftalhaklc.weatherapp.repository.WeatherRepository
 import com.yusuftalhaklc.weatherapp.ui.theme.WeatherAppTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 
 class MainActivity : ComponentActivity() {
 
-    lateinit var colorID:MutableState<Int>
+private lateinit var wrepo:WeatherRepository
+private lateinit var colorID:MutableState<Int>
+private lateinit var CityText:MutableState<String>
+private lateinit var TimeText:MutableState<String>
+private lateinit var ap:AppPref
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             WeatherAppTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background
+                    color = Color.White
                 ) {
                     NavPage()
                 }
             }
         }
+    /*
+     ap = AppPref(applicationContext)
+    lifecycleScope.launch{
+        ap.setColor(R.color.Blue)
+    }*/
+
+}
+override fun onStop() {
+     super.onStop()/*
+    lifecycleScope.launch{
+        ap.setColor(colorID.value)
+        ap.setCity(CityText.value)
+    }
+*/
 }
 
 @Composable
@@ -63,7 +85,7 @@ fun NavPage(){
     val navController = rememberNavController()
     NavHost(navController, startDestination = "main") {
         composable(route = "main") {
-            MainPage(navController)
+            MainPage()
         }
         composable(route = "sevendays") {
             NextSevenDays()
@@ -71,47 +93,52 @@ fun NavPage(){
     }
 }
 
-fun colorApp(colorText:String  ) {
-
+@Composable
+fun ColorApp(colorText:String  ) {
      var color:Int?=null
-        when(colorText){
-            "Blue" -> color = R.color.Blue
-            "Green" -> color = R.color.appGreen
-            "Red" -> color = R.color.appRed
-            "Orange" -> color = R.color.appOrange
-            "Purple" -> color = R.color.appPurple
-        }
-    colorID.value = color!!
+    color = when(colorText){
+        "Blue" -> R.color.Blue
+        "Green" -> R.color.appGreen
+        "Red" -> R.color.appRed
+        "Orange" -> R.color.appOrange
+        "Purple" -> R.color.appPurple
+        else -> R.color.Blue
+    }
+    colorID.value = color
 }
 
 @Composable
-fun MainPage(navController: NavController){
-    var precolor = 0
-    colorID = remember {
-        mutableStateOf(0)
-    }
+fun MainPage(){/*
 
-    val ap = AppPref(LocalContext.current)
+    LaunchedEffect(key1 = true){
+        val job: Job = CoroutineScope(Dispatchers.Main).launch {
+            if(ap.getCity() != null){
+                CityText.value = ap.getCity()!!
+            }else{CityText.value="istanbul"}
+            if(ap.getColor()  != null){
+                colorID.value = ap.getColor()!!
+            }
+            else{
+                colorID.value = R.color.Blue
+            }
 
-    LaunchedEffect(key1 = true ){
-        val job:Job = CoroutineScope(Dispatchers.Main).launch {
-            ap.setColor(colorID.value)
-
-            precolor = ap.getColor()!!.toInt()
         }
-
+    }*/
+    colorID = rememberSaveable {
+        mutableStateOf(R.color.Blue)
     }
-    Log.e("COLOR",precolor.toString())
-    colorID.value = precolor
-
+    CityText = rememberSaveable {
+        mutableStateOf("Ankara")
+    }
 
     ChangeNavigationBarColor(R.color.white)
+
     Column(modifier = Modifier
-        .padding(10.dp)
+        .padding(start = 10.dp, end = 10.dp)
         .verticalScroll(rememberScrollState())) {
         TopInfoRow()
         CurrentInfo()
-        BottomInfoRow(navController)
+        BottomInfoRow()
         HourlyWeatherInfoRow()
     }
     ChangeNavigationBarColor(BarColor = colorID.value)
@@ -120,20 +147,46 @@ fun MainPage(navController: NavController){
 @Composable
 fun CurrentInfo(){
 
-    Log.e("COLOR ID CARD",colorID.toString())
+    wrepo = WeatherRepository(CityText.value)
+
+    var CityText = rememberSaveable{ mutableStateOf("City")}
+    var CountryText = rememberSaveable{ mutableStateOf("Country")}
+    var temp = rememberSaveable{ mutableStateOf(0.0)}
+    var tempFeelsLike = rememberSaveable{ mutableStateOf(0.0)}
+    var wind = rememberSaveable{ mutableStateOf(0.0)}
+    var pressure = rememberSaveable{ mutableStateOf(0.0)}
+    var uv = rememberSaveable{ mutableStateOf(0.0)}
+    var condition = rememberSaveable{ mutableStateOf("Country")}
+    TimeText = rememberSaveable{ mutableStateOf("0000-00-00 00:00")}
+    var imageUrl = rememberSaveable{ mutableStateOf("")}
+
+    wrepo.weatherLiveData.observe(this, Observer {
+        condition.value = it.current.condition.text
+        imageUrl.value = it.current.condition.icon
+        CityText.value = it.location.name
+        CountryText.value = it.location.country
+        temp.value = it.current.tempC
+        tempFeelsLike.value = it.current.feelslikeC
+        wind.value = it.current.windMph
+        pressure.value = it.current.pressureMb
+        uv.value = it.current.uv
+        TimeText.value = it.location.localtime
+        TimeText.value = it.location.localtime
+
+    })
+
     Row(modifier = Modifier.padding(10.dp)){
         Text(
-            text = "Istanbul"+",",
+            text = CityText.value+ ",",
             fontWeight = FontWeight.Bold,
             fontSize = 25.sp,
             modifier = Modifier.padding(start=4.dp)
         )
         Text(
-            text = "Turkey",
+            text = CountryText.value,
             fontWeight = FontWeight.Light,
             fontSize = 25.sp,
             modifier = Modifier.padding(start=3.dp)
-
         )
     }
 
@@ -149,33 +202,33 @@ fun CurrentInfo(){
             modifier = Modifier.fillMaxWidth()
         ) {
             Spacer(modifier = Modifier.padding(15.dp))
-            Image(
-                painter = painterResource(id = R.drawable.sunny),
-                contentDescription = "weather image",
-                modifier = Modifier
-                    .width(80.dp)
-                    .height(80.dp)
+
+            GlideImage(
+                imageModel = imageUrl.value.replace("//","https://"),
+                modifier = Modifier.size(70.dp,70.dp)
             )
             Text(
-                text = "Mostly cloudy",
+                text = condition.value,
                 fontWeight = FontWeight.Bold,
                 fontSize = 25.sp,
                 modifier = Modifier.padding(bottom = 5.dp)
             )
             Text(
-                text = "Monday, 07 Feb",
+                text = TimeText.value,
                 fontWeight = FontWeight.Light,
                 fontSize = 15.sp
             )
             Spacer(modifier = Modifier.padding(5.dp))
             Text(
-                text = " 12"+"°",
+                text = "${temp.value.toInt()}°",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 100.sp
             )
+
             Spacer(modifier = Modifier.padding(5.dp))
+
             Spacer(modifier = Modifier
-                .padding(bottom = 0.dp, top = 5.dp)
+                .padding(bottom = 4.dp, top = 5.dp)
                 .fillMaxWidth()
                 .height(1.dp)
                 .background(colorResource(id = R.color.LightBlue)))
@@ -186,65 +239,113 @@ fun CurrentInfo(){
                         .padding(start = 20.dp, end = 20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween) {
 
-
-                    CurrentWeatherDetailBox(R.drawable.wind,"WIND","34.2 km/j")
-
-                    Spacer(modifier = Modifier
-                        .padding(bottom = 0.dp, top = 0.dp)
-                        .width(1.dp)
-                        .height(70.dp)
-                        .background(colorResource(id = R.color.LightBlue)))
-
-
-                    CurrentWeatherDetailBox(R.drawable.temperature,"FEELS LIKE","10°")
+                    CurrentWeatherDetailBox(R.drawable.wind,"WIND","${wind.value} km/j")
+                    CurrentWeatherDetailBox(R.drawable.temperature,"FEELS LIKE","${tempFeelsLike.value}°")
                 }
+                Spacer(modifier = Modifier
+                    .padding(bottom = 8.dp, top = 0.dp, start = 0.dp))
                 Spacer(modifier = Modifier
                     .padding(bottom = 0.dp, top = 0.dp)
                     .fillMaxWidth()
                     .height(1.dp)
                     .background(colorResource(id = R.color.LightBlue)))
-
+                Spacer(modifier = Modifier
+                    .padding(bottom = 5.dp, top = 0.dp, start = 0.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 20.dp, end = 20.dp, bottom = 0.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    CurrentWeatherDetailBox(R.drawable.sunnyy,"INDEX UV","${uv.value.toInt()}")
 
-                    CurrentWeatherDetailBox(R.drawable.sunnyy,"INDEX UV","2")
-                    Spacer(modifier = Modifier
-                        .padding(bottom = 0.dp, top = 0.dp, start = 5.dp)
-                        .width(1.dp)
-                        .height(70.dp)
-                        .background(colorResource(id = R.color.LightBlue)))
-                    CurrentWeatherDetailBox(R.drawable.pulserate,"PRESSURE","1014 mbar")
+                    CurrentWeatherDetailBox(R.drawable.pulserate,"PRESSURE","${pressure.value.toInt()} mbar")
                 }
+                Spacer(modifier = Modifier
+                    .padding(bottom = 10.dp, top = 0.dp, start = 0.dp))
 
             }
         }
-
 
     }
 }
 
 @Composable
 fun TopInfoRow(){
-    val dropDownMenuExpanded = remember {
+    val focusRequester = remember {
+        FocusRequester()
+    }
+    val searchBar = rememberSaveable {
         mutableStateOf(false)
     }
-    val appColorText = remember {
+    val dropDownMenuExpanded = rememberSaveable {
+        mutableStateOf(false)
+    }
+    val  searchTextTop = rememberSaveable {
+        mutableStateOf("")
+    }
+    val appColorText = rememberSaveable  {
         mutableStateOf("Blue")
     }
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(onClick = { /*TODO*/ }) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_baseline_menu_24),
-                contentDescription = "menu"
+        IconButton(onClick = {
+            searchBar.value = !searchBar.value
+            if(!searchBar.value && CityText.value.isEmpty()){
+                CityText.value = searchTextTop.value.replace(" ","_")
+            }
+        }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_baseline_search_24),
+                    contentDescription = "SEARCH"
+                )
+        }
+
+        if(searchBar.value){
+
+            OutlinedTextField(
+                value = searchTextTop.value ,
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = colorResource(id = colorID.value)
+                ),
+                onValueChange = {
+                    searchTextTop.value = it
+                                } ,
+                shape = RoundedCornerShape(percent = 50),
+                modifier = Modifier
+                    .padding(0.dp)
+                    .focusRequester(
+                        focusRequester
+                    )
+                    .height(45.dp)
+                    .weight(1f),
+                placeholder = {
+                    Text("Enter a city name",fontSize = 10.sp)
+                },
+                textStyle = TextStyle(fontSize = 10.sp),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType =  KeyboardType.Text,
+                    imeAction = ImeAction.Search
+                ),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        CityText.value = searchTextTop.value.replace(" ","_")
+                        searchBar.value = false
+                    }
+                )
+
             )
         }
+        else{
+            //focusRequester.freeFocus()
+        }
+
         IconButton(onClick = { 
             dropDownMenuExpanded.value = !dropDownMenuExpanded.value
         }) {
@@ -324,7 +425,7 @@ fun TopInfoRow(){
                             CircleShape
                         ))
                     Spacer(modifier = Modifier.padding(5.dp))
-                    Text("Purple")
+                    Text("Pink")
                 }
 
 
@@ -332,12 +433,14 @@ fun TopInfoRow(){
         }
 
     }
-    colorApp(colorText = appColorText.value)
+
+    ColorApp(colorText = appColorText.value)
+
+
 }
 
-
 @Composable
-fun BottomInfoRow(navController: NavController){
+fun BottomInfoRow(){
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(15.dp),
@@ -364,7 +467,8 @@ fun CurrentWeatherDetailBox(pic:Int,title:String,content:String){
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,modifier= Modifier
+
     ) {
             Image(painter = painterResource(id = pic ),
                 contentDescription = title,
@@ -391,27 +495,47 @@ fun CurrentWeatherDetailBox(pic:Int,title:String,content:String){
         }
 }
 
-@Composable
-fun HourlyWeatherInfoRow(){
-    LazyRow(
-        content = {
-            item{
-                HourlyWeatherCard(12,"Now",R.color.white,R.color.white,colorID.value)
-                HourlyWeatherCard(14,"22°")
-                HourlyWeatherCard(16,"26°")
-                HourlyWeatherCard(18,"25°")
-                HourlyWeatherCard(20,"31°")
-                HourlyWeatherCard(24,"27°")
 
+
+@Composable
+fun HourlyWeatherInfoRow() {
+
+    wrepo = WeatherRepository(CityText.value)
+    val hourList = remember{mutableStateListOf<Hour>()}
+    val index = rememberSaveable {mutableStateOf(0)}
+    val listState = rememberLazyListState()
+    // Remember a CoroutineScope to be able to launch
+
+    wrepo.weatherListLiveData.observe(this, Observer { weatherHourList ->
+            hourList.addAll(weatherHourList)
+        Log.e("LOST", hourList.size.toString())
+    })
+
+    LazyRow (state = listState){
+
+        items(items = hourList.takeLast(24)) { hourL ->
+
+                val hour = hourL.time.substring(10, 16)
+                val temp = hourL.tempC
+                val url = hourL.condition.icon.replace("//", "https://")
+            if (TimeText.value.substring(10, 13).replace(":","") == hour.substring(0,3).replace("0","")){
+                //index.value =
+                HourlyWeatherCard(hour, "Now", url,R.color.white,tempColor = R.color.white, backgroundColor = colorID.value)
             }
+            else{
+                HourlyWeatherCard(hour, "${temp.toInt()}°", url)
+            }
+
         }
-    )
+
+    }
 }
 
 @Composable
 fun HourlyWeatherCard(
-    time:Int,
+    time:String,
     temp:String,
+    imageUrl:String,
     timeColor:Int = R.color.gray,
     tempColor:Int = R.color.black,
     backgroundColor:Int = R.color.white) {
@@ -428,14 +552,18 @@ fun HourlyWeatherCard(
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = "${time.toString()}:00", fontSize = 12.sp, color = colorResource(timeColor))
-            Image(
+            Text(text = "${time}", fontSize = 12.sp, color = colorResource(timeColor))
+            GlideImage(
+                imageModel = imageUrl,
+                modifier = Modifier.size(40.dp,40.dp)
+            )
+           /* Image(
                 painter = painterResource(id = R.drawable.sunny),
                 contentDescription = "weather image",
                 modifier = Modifier
                     .width(30.dp)
                     .height(30.dp)
-            )
+            )*/
             Text(
                 text = "${temp}",
                 color = colorResource(tempColor),
@@ -445,4 +573,9 @@ fun HourlyWeatherCard(
         }
     }
     }
+
+
+
+
+
 }
